@@ -1,10 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 
+// Add color constants at the top
+const COLORS = {
+  GREEN: '#00ff00',
+  RED: '#ff5f56',
+  WHITE: '#ffffff',
+  BACKGROUND: '#1e1e1e',
+  TERMINAL_BG: '#2d2d2d',
+  HEADER_BG: '#3d3d3d',
+  BUTTON_RED: '#ff5f56',
+  BUTTON_YELLOW: '#ffbd2e',
+  BUTTON_GREEN: '#27c93f'
+};
+
 const TerminalContainer = styled.div`
   width: 100vw;
   height: 100vh;
-  background-color: #1e1e1e;
+  background-color: ${COLORS.BACKGROUND};
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
@@ -15,13 +28,13 @@ const TerminalContainer = styled.div`
 const TerminalWrapper = styled.div`
   width: 100%;
   height: 100%;
-  background-color: #2d2d2d;
+  background-color: ${COLORS.TERMINAL_BG};
   display: flex;
   flex-direction: column;
 `;
 
 const TerminalHeader = styled.div`
-  background-color: #3d3d3d;
+  background-color: ${COLORS.HEADER_BG};
   padding: 8px 16px;
   display: flex;
   align-items: center;
@@ -40,7 +53,7 @@ const TerminalContent = styled.div`
   height: calc(100% - 40px);
   overflow-y: auto;
   font-family: 'Courier New', monospace;
-  color: #ffffff;
+  color: ${COLORS.WHITE};
   font-size: 16px;
   line-height: 1.6;
   text-align: left;
@@ -52,7 +65,7 @@ const TerminalLine = styled.div`
   text-align: left;
 
   a {
-    color: #00ff00;
+    color: ${COLORS.GREEN};
     text-decoration: none;
     cursor: pointer;
 
@@ -70,14 +83,14 @@ const TerminalInput = styled.div`
 `;
 
 const Prompt = styled.span`
-  color: #00ff00;
+  color: ${COLORS.GREEN};
   font-weight: bold;
 `;
 
 const Input = styled.input`
   background: none;
   border: none;
-  color: #00ff00;
+  color: ${COLORS.GREEN};
   font-family: 'Courier New', monospace;
   font-size: 16px;
   flex: 1;
@@ -92,12 +105,12 @@ const INITIAL_LINES = [
 ];
 
 const AVAILABLE_COMMANDS = [
-  'help',
   'about',
-  'projects',
+  'clear',
   'contact',
-  'resume',
-  'clear'
+  'help',
+  'projects',
+  'resume'
 ];
 
 const Terminal: React.FC = () => {
@@ -142,7 +155,14 @@ const Terminal: React.FC = () => {
           '  projects - View my projects',
           '  contact  - Get my contact information',
           '  resume   - View my resume',
-          '  clear    - Clear the terminal'
+          '  clear    - Clear the terminal',
+          '',
+          'Keyboard shortcuts:',
+          '  Enter    - Execute command',
+          '  Escape   - Clear current input',
+          '  ↑        - Previous command',
+          '  ↓        - Next command',
+          '  Tab      - Auto-complete command'
         );
         break;
       case 'about':
@@ -168,23 +188,29 @@ const Terminal: React.FC = () => {
         );
         break;
       case 'resume':
-        const resumePath = process.env.PUBLIC_URL + '/resume/Justin_Zheng_Resume.pdf';
+        const currentDomain = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+        const resumePath = `${protocol}//${currentDomain}${port ? ':' + port : ''}/resume/Justin_Zheng_Resume.pdf`;
+        newLines.push('Downloading resume...');
+        setLines(prev => [...prev, `$ ${command}`, ...newLines]);
         const newWindow = window.open(resumePath, '_blank', 'noopener,noreferrer');
         if (!newWindow) {
-          newLines.push('Error: Could not open resume. Please check if the file exists.');
-          break;
+          setLines(prev => [...prev, '<span style="color: #ff5f56">Error: Could not open resume in a new tab. Please check your popup blocker.</span>']);
         }
+        setInput('');
         return;
       default:
         newLines.push(`Command not found: ${cmd}. Type "help" for available commands.`);
     }
 
-    setLines(prev => [...prev, `$ ${command}`, ...newLines.map(line => {
-      if (line.startsWith('Available commands:')) return `<span style="color: #00ff00">${line}</span>`;
-      if (line.startsWith('Contact Information:')) return `<span style="color: #00ff00">${line}</span>`;
-      if (line.startsWith('My Projects:')) return `<span style="color: #00ff00">${line}</span>`;
-      if (line.startsWith('Error:')) return `<span style="color: #ff5f56">${line}</span>`;
-      if (line.startsWith('Command not found:')) return `<span style="color: #ff5f56">${line}</span>`;
+    setLines(prev => [...prev, ...newLines.map(line => {
+      if (line.startsWith('Available commands:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
+      if (line.startsWith('Contact Information:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
+      if (line.startsWith('My Projects:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
+      if (line.startsWith('Keyboard shortcuts:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
+      if (line.startsWith('Error:')) return `<span style="color: ${COLORS.RED}">${line}</span>`;
+      if (line.startsWith('Command not found:')) return `<span style="color: ${COLORS.RED}">${line}</span>`;
       return line;
     })]);
     setInput('');
@@ -207,8 +233,6 @@ const Terminal: React.FC = () => {
         
         if (matchingCommands.length === 1) {
           setInput(matchingCommands[0]);
-        } else if (matchingCommands.length > 1) {
-          setLines(prev => [...prev, 'Available completions:', ...matchingCommands]);
         }
         break;
       case 'ArrowUp':
@@ -237,9 +261,9 @@ const Terminal: React.FC = () => {
     <TerminalContainer>
       <TerminalWrapper>
         <TerminalHeader>
-          <TerminalButton color="#ff5f56" />
-          <TerminalButton color="#ffbd2e" />
-          <TerminalButton color="#27c93f" />
+          <TerminalButton color={COLORS.BUTTON_RED} />
+          <TerminalButton color={COLORS.BUTTON_YELLOW} />
+          <TerminalButton color={COLORS.BUTTON_GREEN} />
         </TerminalHeader>
         <TerminalContent ref={contentRef}>
           {lines.map((line, index) => (
