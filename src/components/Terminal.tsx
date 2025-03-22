@@ -99,7 +99,6 @@ const TerminalLine = styled.div<{ isCommand?: boolean }>`
 const TerminalInput = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
   text-align: left;
   margin-top: 12px;
 `;
@@ -107,6 +106,8 @@ const TerminalInput = styled.div`
 const Prompt = styled.span`
   color: ${COLORS.GREEN};
   font-weight: bold;
+  display: flex;
+  align-items: center;
 `;
 
 const PromptText = styled.span`
@@ -115,7 +116,7 @@ const PromptText = styled.span`
 `;
 
 const DollarSign = styled.span`
-  margin: 0 4px;
+  margin: 0;
 `;
 
 const Input = styled.input`
@@ -127,6 +128,7 @@ const Input = styled.input`
   flex: 1;
   outline: none;
   text-align: left;
+  margin-left: 8px;
 `;
 
 const INITIAL_LINES = [
@@ -187,7 +189,7 @@ const Terminal: React.FC = () => {
       return;
     }
 
-    newLines.push(`<div style="margin-top: 12px"><span style="color: ${COLORS.GREEN}">visitor@justinzheng.me:~$</span> ${command}</div>`);
+    newLines.push(`<div style="margin-top: 12px"><span style="color: ${COLORS.GREEN}">visitor@justinzheng.me:~$</span>\u00A0${command}</div>`);
 
     switch (cmd) {
       case 'help':
@@ -228,24 +230,18 @@ const Terminal: React.FC = () => {
         );
         break;
       case 'resume':
-        const currentDomain = window.location.hostname;
-        const protocol = window.location.protocol;
-        const port = window.location.port;
-        const resumePath = `${protocol}//${currentDomain}${port ? ':' + port : ''}/resume/Justin_Zheng_Resume.pdf`;
-        newLines.push('Downloading resume...');
-        setLines(prev => [...prev, ...newLines.map(line => {
-          if (line.startsWith('Available commands:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
-          if (line.startsWith('Contact Information:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
-          if (line.startsWith('My Projects:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
-          if (line.startsWith('Error:')) return `<span style="color: ${COLORS.RED}">${line}</span>`;
-          if (line.startsWith('Command not found:')) return `<span style="color: ${COLORS.RED}">${line}</span>`;
-          return line;
-        })]);
-        const newWindow = window.open(resumePath, '_blank', 'noopener,noreferrer');
-        if (!newWindow) {
-          setLines(prev => [...prev, '<span style="color: #ff5f56">Error: Could not open resume in a new tab. Please check your popup blocker.</span>']);
+        {
+          const currentDomain = window.location.hostname;
+          const protocol = window.location.protocol;
+          const port = window.location.port;
+          const resumePath = `${protocol}//${currentDomain}${port ? ':' + port : ''}/resume/`;
+          newLines.push('Opening resume in a new tab...');
+          // Use setTimeout to ensure the success message appears before opening the PDF
+          setTimeout(() => {
+            window.open(resumePath, '_blank', 'noopener,noreferrer');
+          }, 100);
         }
-        return;
+        break;
       default:
         newLines.push(`Command not found: ${cmd}. Type "help" for available commands.`);
     }
