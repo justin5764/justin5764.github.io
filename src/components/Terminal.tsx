@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import '@fontsource/jetbrains-mono';
+import 'hack-font/build/web/hack.css';
 
-// Add color constants at the top
 const COLORS = {
-  GREEN: '#00ff00',
+  GREEN: '#98c379',
   RED: '#ff5f56',
   WHITE: '#ffffff',
   BACKGROUND: '#1e1e1e',
@@ -11,7 +12,10 @@ const COLORS = {
   HEADER_BG: '#3d3d3d',
   BUTTON_RED: '#ff5f56',
   BUTTON_YELLOW: '#ffbd2e',
-  BUTTON_GREEN: '#27c93f'
+  BUTTON_GREEN: '#27c93f',
+  LINK: '#00bfff',
+  COMMAND_NAME: '#d4c5a1',
+  KEY: '#b4befe'
 };
 
 const TerminalContainer = styled.div`
@@ -52,20 +56,37 @@ const TerminalContent = styled.div`
   padding: 16px;
   height: calc(100% - 40px);
   overflow-y: auto;
-  font-family: 'Courier New', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   color: ${COLORS.WHITE};
   font-size: 16px;
   line-height: 1.6;
   text-align: left;
 `;
 
-const TerminalLine = styled.div`
-  margin-bottom: 8px;
+const TerminalLine = styled.div<{ isCommand?: boolean }>`
+  margin-bottom: ${props => props.isCommand ? '12px' : '2px'};
   white-space: pre-wrap;
   text-align: left;
+  opacity: 0;
+  animation: fadeIn 0.3s ease-in forwards;
+
+  &:last-child {
+    margin-bottom: 12px;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
   a {
-    color: ${COLORS.GREEN};
+    color: ${COLORS.LINK};
     text-decoration: none;
     cursor: pointer;
 
@@ -80,6 +101,7 @@ const TerminalInput = styled.div`
   align-items: center;
   gap: 8px;
   text-align: left;
+  margin-top: 12px;
 `;
 
 const Prompt = styled.span`
@@ -87,11 +109,20 @@ const Prompt = styled.span`
   font-weight: bold;
 `;
 
+const PromptText = styled.span`
+  color: ${COLORS.GREEN};
+  font-weight: normal;
+`;
+
+const DollarSign = styled.span`
+  margin: 0 4px;
+`;
+
 const Input = styled.input`
   background: none;
   border: none;
-  color: ${COLORS.GREEN};
-  font-family: 'Courier New', monospace;
+  color: ${COLORS.WHITE};
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   font-size: 16px;
   flex: 1;
   outline: none;
@@ -99,8 +130,8 @@ const Input = styled.input`
 `;
 
 const INITIAL_LINES = [
-  'Welcome to Justin\'s Portfolio Website!',
-  'Type "help" to see available commands.',
+  'Welcome to justinzheng.me v1.0.0',
+  `Type <span style="color: ${COLORS.COMMAND_NAME}">"help"</span> to see available commands.`,
   '',
 ];
 
@@ -118,6 +149,7 @@ const Terminal: React.FC = () => {
   const [input, setInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isProcessing, setIsProcessing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -131,7 +163,17 @@ const Terminal: React.FC = () => {
     }
   }, [lines]);
 
-  const handleCommand = (command: string) => {
+  const addLinesSequentially = async (newLines: string[]) => {
+    setIsProcessing(true);
+    for (const line of newLines) {
+      setLines(prev => [...prev, line]);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    setIsProcessing(false);
+  };
+
+  const handleCommand = async (command: string) => {
+    setInput('');
     if (command.trim()) {
       setCommandHistory(prev => [...prev, command]);
       setHistoryIndex(-1);
@@ -142,27 +184,25 @@ const Terminal: React.FC = () => {
     
     if (cmd === 'clear') {
       setLines(INITIAL_LINES);
-      setInput('');
       return;
     }
+
+    newLines.push(`<div style="margin-top: 12px"><span style="color: ${COLORS.GREEN}">visitor@justinzheng.me:~$</span> ${command}</div>`);
 
     switch (cmd) {
       case 'help':
         newLines.push(
           'Available commands:',
-          '  help     - Show this help message',
-          '  about    - Learn more about me',
-          '  projects - View my projects',
-          '  contact  - Get my contact information',
-          '  resume   - View my resume',
-          '  clear    - Clear the terminal',
+          `  <span style="color: ${COLORS.COMMAND_NAME}">help</span>     - Show this help message`,
+          `  <span style="color: ${COLORS.COMMAND_NAME}">about</span>    - Learn more about me`,
+          `  <span style="color: ${COLORS.COMMAND_NAME}">projects</span> - View my projects`,
+          `  <span style="color: ${COLORS.COMMAND_NAME}">contact</span>  - Get my contact information`,
+          `  <span style="color: ${COLORS.COMMAND_NAME}">resume</span>   - View my resume`,
+          `  <span style="color: ${COLORS.COMMAND_NAME}">clear</span>    - Clear the terminal`,
           '',
-          'Keyboard shortcuts:',
-          '  Enter    - Execute command',
-          '  Escape   - Clear current input',
-          '  ↑        - Previous command',
-          '  ↓        - Next command',
-          '  Tab      - Auto-complete command'
+          `Use <span style="color: ${COLORS.KEY}">[Tab]</span> to auto-complete commands`,
+          `Use <span style="color: ${COLORS.KEY}">[Esc]</span> to clear input`,
+          `Use <span style="color: ${COLORS.KEY}">[↑]</span><span style="color: ${COLORS.KEY}">[↓]</span> to navigate command history`
         );
         break;
       case 'about':
@@ -182,7 +222,7 @@ const Terminal: React.FC = () => {
       case 'contact':
         newLines.push(
           'Contact Information:',
-          'Email: jzheng394@gatech.edu',
+          `Email: <a href="mailto:jzheng394@gatech.edu" target="_blank" rel="noopener noreferrer">jzheng394@gatech.edu</a>`,
           'GitHub: <a href="https://github.com/justin5764" target="_blank" rel="noopener noreferrer">github.com/justin5764</a>',
           'LinkedIn: <a href="https://linkedin.com/in/justinzheng9398" target="_blank" rel="noopener noreferrer">linkedin.com/in/justinzheng9398</a>'
         );
@@ -193,27 +233,33 @@ const Terminal: React.FC = () => {
         const port = window.location.port;
         const resumePath = `${protocol}//${currentDomain}${port ? ':' + port : ''}/resume/Justin_Zheng_Resume.pdf`;
         newLines.push('Downloading resume...');
-        setLines(prev => [...prev, `$ ${command}`, ...newLines]);
+        setLines(prev => [...prev, ...newLines.map(line => {
+          if (line.startsWith('Available commands:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
+          if (line.startsWith('Contact Information:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
+          if (line.startsWith('My Projects:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
+          if (line.startsWith('Error:')) return `<span style="color: ${COLORS.RED}">${line}</span>`;
+          if (line.startsWith('Command not found:')) return `<span style="color: ${COLORS.RED}">${line}</span>`;
+          return line;
+        })]);
         const newWindow = window.open(resumePath, '_blank', 'noopener,noreferrer');
         if (!newWindow) {
           setLines(prev => [...prev, '<span style="color: #ff5f56">Error: Could not open resume in a new tab. Please check your popup blocker.</span>']);
         }
-        setInput('');
         return;
       default:
         newLines.push(`Command not found: ${cmd}. Type "help" for available commands.`);
     }
 
-    setLines(prev => [...prev, ...newLines.map(line => {
+    const processedLines = newLines.map(line => {
       if (line.startsWith('Available commands:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
       if (line.startsWith('Contact Information:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
       if (line.startsWith('My Projects:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
-      if (line.startsWith('Keyboard shortcuts:')) return `<span style="color: ${COLORS.GREEN}">${line}</span>`;
       if (line.startsWith('Error:')) return `<span style="color: ${COLORS.RED}">${line}</span>`;
       if (line.startsWith('Command not found:')) return `<span style="color: ${COLORS.RED}">${line}</span>`;
       return line;
-    })]);
-    setInput('');
+    });
+
+    await addLinesSequentially(processedLines);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -269,11 +315,14 @@ const Terminal: React.FC = () => {
           {lines.map((line, index) => (
             <TerminalLine 
               key={index} 
+              isCommand={line.includes('visitor@justinzheng.me:~$')}
               dangerouslySetInnerHTML={{ __html: line }}
             />
           ))}
           <TerminalInput>
-            <Prompt>$</Prompt>
+            <Prompt>
+              <PromptText>visitor@justinzheng.me</PromptText>:~<DollarSign>$</DollarSign>
+            </Prompt>
             <Input
               ref={inputRef}
               value={input}
